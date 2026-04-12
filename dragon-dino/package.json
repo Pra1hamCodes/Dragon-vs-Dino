@@ -1,0 +1,23 @@
+{
+  "name": "dragon-dino",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @dragon-dino/web dev\" \"pnpm --filter @dragon-dino/api dev\"",
+    "build": "pnpm --filter @dragon-dino/shared build && pnpm --filter @dragon-dino/web build && pnpm --filter @dragon-dino/api build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:migrate": "pnpm --filter @dragon-dino/api db:migrate",
+    "db:seed": "pnpm --filter @dragon-dino/api db:seed",
+    "db:generate": "pnpm --filter @dragon-dino/api db:generate"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

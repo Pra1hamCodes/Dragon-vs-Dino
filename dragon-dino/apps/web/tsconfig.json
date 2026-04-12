@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@dragon-dino/shared": ["../../packages/shared/src"]
+    },
+    "types": ["vite/client"]
+  },
+  "include": ["src/**/*", "vite-env.d.ts"],
+  "references": [{ "path": "../../packages/shared" }]
+}

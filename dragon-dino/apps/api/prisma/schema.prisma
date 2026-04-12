@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String?
+  avatarUrl     String?
+  provider      String   @default("email")
+  providerId    String?
+  xp            Int      @default(0)
+  rank          Int      @default(1)
+  coins         Int      @default(0)
+  premiumCoins  Int      @default(0)
+  currentSkinId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  scores           Score[]
+  achievements     UserAchievement[]
+  skins            UserSkin[]
+  friendships      Friendship[]        @relation("UserFriendships")
+  friendOf         Friendship[]        @relation("FriendOfUser")
+  challenges       Challenge[]
+  submissions      ChallengeSubmission[]
+  seasonProgress   SeasonProgress[]
+  replays          Replay[]
+  currentSkin      Skin?               @relation("EquippedSkin", fields: [currentSkinId], references: [id])
+
+  @@index([email])
+  @@index([username])
+  @@index([xp])
+  @@index([rank])
+}
+
+model Score {
+  id             String   @id @default(cuid())
+  userId         String
+  value          Int
+  distance       Float
+  coinsCollected Int      @default(0)
+  powerupsUsed   Int      @default(0)
+  duration       Int
+  seed           String?
+  gameVersion    String
+  inputHash      String
+  verified       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replay Replay?
+
+  @@index([userId])
+  @@index([value])
+  @@index([createdAt])
+  @@index([userId, value])
+  @@index([userId, createdAt])
+}
+
+model Achievement {
+  id          String @id @default(cuid())
+  slug        String @unique
+  title       String
+  description String
+  iconUrl     String
+  xpReward    Int
+  coinReward  Int
+  rarity      String
+
+  users UserAchievement[]
+
+  @@index([slug])
+}
+
+model UserAchievement {
+  userId        String
+  achievementId String
+  unlockedAt    DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@id([userId, achievementId])
+}
+
+model Skin {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  description  String
+  previewUrl   String
+  modelUrl     String
+  rarity       String
+  price        Int
+  premiumPrice Int
+  isDefault    Boolean @default(false)
+  seasonId     String?
+
+  season    Season?    @relation(fields: [seasonId], references: [id])
+  owners    UserSkin[]
+  equippedBy User[]    @relation("EquippedSkin")
+
+  @@index([slug])
+  @@index([seasonId])
+}
+
+model UserSkin {
+  userId     String
+  skinId     String
+  equippedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skin Skin @relation(fields: [skinId], references: [id], onDelete: Cascade)
+
+  @@id([userId, skinId])
+}
+
+model Season {
+  id        String   @id @default(cuid())
+  name      String
+  number    Int      @unique
+  startDate DateTime
+  endDate   DateTime
+  isActive  Boolean  @default(false)
+
+  tiers    SeasonTier[]
+  progress SeasonProgress[]
+  skins    Skin[]
+
+  @@index([isActive])
+  @@index([number])
+}
+
+model SeasonTier {
+  id           String  @id @default(cuid())
+  seasonId     String
+  tier         Int
+  xpRequired   Int
+  isPremium    Boolean @default(false)
+  rewardType   String
+  rewardId     String?
+  rewardAmount Int     @default(0)
+
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@index([seasonId])
+  @@index([seasonId, tier])
+}
+
+model SeasonProgress {
+  userId    String
+  seasonId  String
+  xp        Int     @default(0)
+  isPremium Boolean @default(false)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season Season @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, seasonId])
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  creatorId   String
+  seed        String
+  targetScore Int
+  expiresAt   DateTime
+  shareToken  String   @unique @default(cuid())
+
+  creator     User                  @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  submissions ChallengeSubmission[]
+
+  @@index([creatorId])
+  @@index([shareToken])
+  @@index([expiresAt])
+}
+
+model ChallengeSubmission {
+  id          String @id @default(cuid())
+  challengeId String
+  userId      String
+  score       Int
+
+  challenge Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+  @@index([challengeId])
+  @@index([userId])
+}
+
+model Friendship {
+  userId    String
+  friendId  String
+  status    String
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFriendships", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendOfUser", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@id([userId, friendId])
+}
+
+model Replay {
+  id        String   @id @default(cuid())
+  userId    String
+  scoreId   String   @unique
+  inputLog  Json
+  duration  Int
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  score Score @relation(fields: [scoreId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([scoreId])
+  @@index([expiresAt])
+}
+
+model DailyChallenge {
+  date        DateTime @id
+  seed        String
+  targetScore Int
+
+  @@index([date])
+}
