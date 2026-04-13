@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useSphere } from '@react-three/cannon';
 import * as THREE from 'three';
 import type { PowerupType } from '@dragon-dino/shared';
 
@@ -23,55 +22,29 @@ const POWERUP_CONFIG: Record<
 
 function PowerUpGeometry({ geometry }: { geometry: string }) {
   switch (geometry) {
-    case 'sphere':
-      return <sphereGeometry args={[0.4, 16, 16]} />;
-    case 'torus':
-      return <torusGeometry args={[0.35, 0.12, 12, 24]} />;
-    case 'cone':
-      return <coneGeometry args={[0.35, 0.7, 8]} />;
-    case 'octahedron':
-      return <octahedronGeometry args={[0.4]} />;
-    case 'box':
-      return <boxGeometry args={[0.5, 0.5, 0.5]} />;
-    default:
-      return <sphereGeometry args={[0.4, 16, 16]} />;
+    case 'sphere': return <sphereGeometry args={[0.38, 16, 16]} />;
+    case 'torus': return <torusGeometry args={[0.32, 0.1, 12, 24]} />;
+    case 'cone': return <coneGeometry args={[0.32, 0.65, 8]} />;
+    case 'octahedron': return <octahedronGeometry args={[0.38]} />;
+    case 'box': return <boxGeometry args={[0.45, 0.45, 0.45]} />;
+    default: return <sphereGeometry args={[0.38, 16, 16]} />;
   }
 }
 
-export default function PowerUp({ position, type, onCollect }: PowerUpProps) {
+export default function PowerUp({ position, type }: PowerUpProps) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const wireRef = useRef<THREE.Mesh>(null!);
-  const collected = useRef(false);
-  const initialY = position[1];
   const timeOffset = useRef(Math.random() * Math.PI * 2);
   const config = POWERUP_CONFIG[type];
 
-  const [colliderRef] = useSphere(() => ({
-    type: 'Static',
-    position,
-    args: [0.6],
-    isTrigger: true,
-    onCollide: () => {
-      if (!collected.current) {
-        collected.current = true;
-        onCollect();
-      }
-    },
-  }));
-
   useFrame((state) => {
-    if (!meshRef.current || collected.current) return;
-
+    if (!meshRef.current) return;
     const t = state.clock.elapsedTime + timeOffset.current;
 
-    // Spin
-    meshRef.current.rotation.y += 0.03;
-    meshRef.current.rotation.x = Math.sin(t * 1.5) * 0.2;
+    meshRef.current.rotation.y += 0.035;
+    meshRef.current.rotation.x = Math.sin(t * 1.5) * 0.18;
+    meshRef.current.position.set(position[0], position[1] + Math.sin(t * 2) * 0.3, position[2]);
 
-    // Bob
-    meshRef.current.position.y = initialY + Math.sin(t * 2) * 0.35;
-
-    // Wireframe follows
     if (wireRef.current) {
       wireRef.current.rotation.copy(meshRef.current.rotation);
       wireRef.current.position.copy(meshRef.current.position);
@@ -79,27 +52,24 @@ export default function PowerUp({ position, type, onCollect }: PowerUpProps) {
     }
   });
 
-  if (collected.current) return null;
-
   return (
-    <group ref={colliderRef as React.Ref<THREE.Group>}>
-      {/* Solid mesh */}
-      <mesh ref={meshRef} position={[position[0], position[1], position[2]]} castShadow>
+    <group>
+      <mesh ref={meshRef} position={position} castShadow>
         <PowerUpGeometry geometry={config.geometry} />
         <meshStandardMaterial
           color={config.color}
           emissive={config.emissive}
-          emissiveIntensity={0.8}
-          metalness={0.5}
-          roughness={0.3}
+          emissiveIntensity={0.9}
+          metalness={0.45}
+          roughness={0.25}
         />
       </mesh>
-
-      {/* Wireframe outline */}
-      <mesh ref={wireRef} position={[position[0], position[1], position[2]]} scale={1.15}>
+      <mesh ref={wireRef} position={position} scale={1.18}>
         <PowerUpGeometry geometry={config.geometry} />
-        <meshBasicMaterial color={config.color} wireframe transparent opacity={0.3} />
+        <meshBasicMaterial color={config.color} wireframe transparent opacity={0.25} />
       </mesh>
+      {/* Glow light */}
+      <pointLight position={position} color={config.color} intensity={1.5} distance={3} decay={2} />
     </group>
   );
 }

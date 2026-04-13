@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { useSphere } from '@react-three/cannon';
 import * as THREE from 'three';
 
 interface CoinProps {
@@ -8,51 +7,29 @@ interface CoinProps {
   onCollect: () => void;
 }
 
-export default function Coin({ position, onCollect }: CoinProps) {
+export default function Coin({ position }: CoinProps) {
   const meshRef = useRef<THREE.Mesh>(null!);
-  const collected = useRef(false);
-  const initialY = position[1];
   const timeOffset = useRef(Math.random() * Math.PI * 2);
 
-  const [colliderRef] = useSphere(() => ({
-    type: 'Static',
-    position,
-    args: [0.5],
-    isTrigger: true,
-    onCollide: () => {
-      if (!collected.current) {
-        collected.current = true;
-        onCollect();
-      }
-    },
-  }));
-
   useFrame((state) => {
-    if (!meshRef.current || collected.current) return;
-
+    if (!meshRef.current) return;
     const t = state.clock.elapsedTime + timeOffset.current;
-
-    // Spin
-    meshRef.current.rotation.y += 0.04;
-
-    // Bob up and down
-    meshRef.current.position.y = initialY + Math.sin(t * 2.5) * 0.25;
+    meshRef.current.rotation.y += 0.05;
+    meshRef.current.position.y = position[1] + Math.sin(t * 2.5) * 0.2;
+    meshRef.current.position.x = position[0];
+    meshRef.current.position.z = position[2];
   });
 
-  if (collected.current) return null;
-
   return (
-    <group ref={colliderRef as React.Ref<THREE.Group>}>
-      <mesh ref={meshRef} position={[position[0], position[1], position[2]]} castShadow>
-        <cylinderGeometry args={[0.35, 0.35, 0.08, 24]} />
-        <meshStandardMaterial
-          color="#FFD700"
-          emissive="#FF8C00"
-          emissiveIntensity={0.5}
-          metalness={0.8}
-          roughness={0.2}
-        />
-      </mesh>
-    </group>
+    <mesh ref={meshRef} position={position} castShadow>
+      <cylinderGeometry args={[0.3, 0.3, 0.07, 20]} />
+      <meshStandardMaterial
+        color="#FFD700"
+        emissive="#FF8C00"
+        emissiveIntensity={0.6}
+        metalness={0.85}
+        roughness={0.15}
+      />
+    </mesh>
   );
 }
